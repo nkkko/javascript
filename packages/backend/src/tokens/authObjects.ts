@@ -30,7 +30,8 @@ export type SignedInAuthObject = {
   sessionClaims: JwtPayload;
   sessionId: string;
   actor: ActClaim | undefined;
-  userId: string;
+  userId: string | null;
+  machineId: string | null;
   orgId: string | undefined;
   orgRole: OrganizationCustomRoleKey | undefined;
   orgSlug: string | undefined;
@@ -55,6 +56,7 @@ export type SignedOutAuthObject = {
   sessionId: null;
   actor: null;
   userId: null;
+  machineId: null;
   orgId: null;
   orgRole: null;
   orgSlug: null;
@@ -100,7 +102,7 @@ export function signedInAuthObject(
     org_role: orgRole,
     org_slug: orgSlug,
     org_permissions: orgPermissions,
-    sub: userId,
+    sub,
     fva,
   } = sessionClaims;
   const apiClient = createBackendApiClient(authenticateContext);
@@ -113,11 +115,23 @@ export function signedInAuthObject(
   // fva can be undefined for instances that have not opt-in
   const __experimental_factorVerificationAge = fva ?? null;
 
+  let userId: string | null = null;
+  let machineId: string | null = null;
+
+  if (typeof sub === 'string') {
+    if (sub.startsWith('mch_')) {
+      machineId = sub;
+    } else {
+      userId = sub;
+    }
+  }
+
   return {
     actor,
     sessionClaims,
     sessionId,
     userId,
+    machineId,
     orgId,
     orgRole,
     orgSlug,
@@ -137,6 +151,7 @@ export function signedOutAuthObject(debugData?: AuthObjectDebugData): SignedOutA
     sessionClaims: null,
     sessionId: null,
     userId: null,
+    machineId: null,
     actor: null,
     orgId: null,
     orgRole: null,
