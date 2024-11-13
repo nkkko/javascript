@@ -514,12 +514,6 @@ const devConfig = ({ mode, env }) => {
       commonForDev(),
       // externalsForHeadless(),
     ),
-    [variants.clerkHeadlessNoRHC]: merge(
-      entryForVariant(variants.clerkHeadlessNoRHC),
-      common({ mode, rhc: false }),
-      commonForDev(),
-      // externalsForHeadless(),
-    ),
     [variants.clerkHeadlessBrowser]: merge(
       entryForVariant(variants.clerkHeadlessBrowser),
       common({ mode }),
