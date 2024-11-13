@@ -27,7 +27,8 @@
   "types": "dist/types/index.d.ts",
   "files": [
     "dist",
-    "headless"
+    "headless",
+    "no-rhc"
   ],
   "scripts": {
     "build": "npm run build:bundle && npm run build:declarations",

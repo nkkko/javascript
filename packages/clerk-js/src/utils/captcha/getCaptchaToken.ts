@@ -15,10 +15,14 @@ type CaptchaOptions = {
  * This is a temporary solution to test different captcha providers, until we decide on a single one.
  */
 export const getCaptchaToken = (captchaOptions: CaptchaOptions) => {
-  const { captchaProvider, ...captchaProviderOptions } = captchaOptions;
-  if (captchaProvider === 'hcaptcha') {
-    return getHCaptchaToken(captchaProviderOptions);
+  if (__BUILD_ENABLE_RHC__) {
+    const { captchaProvider, ...captchaProviderOptions } = captchaOptions;
+    if (captchaProvider === 'hcaptcha') {
+      return getHCaptchaToken(captchaProviderOptions);
+    } else {
+      return getTunstileToken(captchaProviderOptions);
+    }
   } else {
-    return getTunstileToken(captchaProviderOptions);
+    throw new Error('Captcha is not supported in this environment');
   }
 };
