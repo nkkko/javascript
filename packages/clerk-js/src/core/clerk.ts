@@ -108,6 +108,7 @@ import {
   clerkMissingSignInUrlAsSatellite,
   clerkOAuthCallbackDidNotCompleteSignInSignUp,
   clerkRedirectUrlIsMissingScheme,
+  clerkUnsupportedEnvironmentWarning,
 } from './errors';
 import { eventBus, events } from './events';
 import type { FapiClient, FapiRequestCallback } from './fapiClient';
@@ -1486,17 +1487,26 @@ export class Clerk implements ClerkInterface {
           }
           throw err;
         }) as Promise<SignInResource | SignUpResource>;
-    } else {
-      throw new Error('Google One Tap authentication is not supported in this environment');
     }
+
+    clerkUnsupportedEnvironmentWarning('Google One Tap');
+    return this.client!.signIn; // TODO: Remove not null assertion
   };
 
   public authenticateWithMetamask = async (props: AuthenticateWithMetamaskParams = {}): Promise<void> => {
-    await this.authenticateWithWeb3({ ...props, strategy: 'web3_metamask_signature' });
+    if (__BUILD_ENABLE_RHC__) {
+      await this.authenticateWithWeb3({ ...props, strategy: 'web3_metamask_signature' });
+    } else {
+      clerkUnsupportedEnvironmentWarning('Metamask');
+    }
   };
 
   public authenticateWithCoinbaseWallet = async (props: AuthenticateWithCoinbaseWalletParams = {}): Promise<void> => {
-    await this.authenticateWithWeb3({ ...props, strategy: 'web3_coinbase_wallet_signature' });
+    if (__BUILD_ENABLE_RHC__) {
+      await this.authenticateWithWeb3({ ...props, strategy: 'web3_coinbase_wallet_signature' });
+    } else {
+      clerkUnsupportedEnvironmentWarning('Coinbase Wallet');
+    }
   };
 
   public authenticateWithWeb3 = async ({
@@ -1551,7 +1561,7 @@ export class Clerk implements ClerkInterface {
         });
       }
     } else {
-      throw new Error('Web3 authentication is not supported in this environment');
+      clerkUnsupportedEnvironmentWarning('Web3');
     }
   };
 

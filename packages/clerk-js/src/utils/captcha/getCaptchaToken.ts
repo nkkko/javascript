@@ -19,10 +19,10 @@ export const getCaptchaToken = (captchaOptions: CaptchaOptions) => {
     const { captchaProvider, ...captchaProviderOptions } = captchaOptions;
     if (captchaProvider === 'hcaptcha') {
       return getHCaptchaToken(captchaProviderOptions);
-    } else {
-      return getTunstileToken(captchaProviderOptions);
     }
-  } else {
-    throw new Error('Captcha is not supported in this environment');
+
+    return getTunstileToken(captchaProviderOptions);
   }
+
+  return Promise.reject();
 };

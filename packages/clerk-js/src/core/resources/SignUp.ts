@@ -37,6 +37,7 @@ import { normalizeUnsafeMetadata } from '../../utils/resourceParams';
 import {
   clerkInvalidFAPIResponse,
   clerkMissingOptionError,
+  clerkUnsupportedEnvironmentWarning,
   clerkVerifyEmailAddressCalledBeforeCreate,
   clerkVerifyWeb3WalletCalledBeforeCreate,
 } from '../errors';
@@ -247,10 +248,10 @@ export class SignUp extends BaseResource implements SignUpResource {
       }
 
       return this.attemptWeb3WalletVerification({ signature, strategy });
-    } else {
-      console.warn('Web3 is not enabled in this environment');
-      return this;
     }
+
+    clerkUnsupportedEnvironmentWarning('Web3');
+    return this;
   };
 
   public authenticateWithMetamask = async (
@@ -267,10 +268,10 @@ export class SignUp extends BaseResource implements SignUpResource {
         strategy: 'web3_metamask_signature',
         legalAccepted: params?.legalAccepted,
       });
-    } else {
-      console.warn('Metamask is not enabled in this environment');
-      return this;
     }
+
+    clerkUnsupportedEnvironmentWarning('Metamask');
+    return this;
   };
 
   public authenticateWithCoinbaseWallet = async (
@@ -287,10 +288,10 @@ export class SignUp extends BaseResource implements SignUpResource {
         strategy: 'web3_coinbase_wallet_signature',
         legalAccepted: params?.legalAccepted,
       });
-    } else {
-      console.warn('Coinbase Wallet is not enabled in this environment');
-      return this;
     }
+
+    clerkUnsupportedEnvironmentWarning('Coinbase Wallet');
+    return this;
   };
 
   public authenticateWithRedirect = async ({
