@@ -175,7 +175,7 @@ export class Clerk implements ClerkInterface {
   // converted to protected environment to support `updateEnvironment` type assertion
   protected environment?: EnvironmentResource | null;
 
-  #publishableKey: string = '';
+  #publishableKey = '';
   #domain: DomainOrProxyUrl['domain'];
   #proxyUrl: DomainOrProxyUrl['proxyUrl'];
   #authService?: AuthCookieService;
@@ -281,22 +281,24 @@ export class Clerk implements ClerkInterface {
   }
 
   public constructor(key: string, options?: DomainOrProxyUrl) {
-    key = (key || '').trim();
+    const trimmedKey = (key || '').trim();
 
     this.#domain = options?.domain;
     this.#proxyUrl = options?.proxyUrl;
 
-    if (!key) {
-      return errorThrower.throwMissingPublishableKeyError();
+    if (!trimmedKey) {
+      errorThrower.throwMissingPublishableKeyError();
+      return;
     }
 
     const publishableKey = parsePublishableKey(key);
 
     if (!publishableKey) {
-      return errorThrower.throwInvalidPublishableKeyError({ key });
+      errorThrower.throwInvalidPublishableKeyError({ key: trimmedKey });
+      return;
     }
 
-    this.#publishableKey = key;
+    this.#publishableKey = trimmedKey;
     this.#instanceType = publishableKey.instanceType;
 
     this.#fapiClient = createFapiClient(this);
@@ -542,7 +544,7 @@ export class Clerk implements ClerkInterface {
   };
 
   public mountSignIn = (node: HTMLDivElement, props?: SignInProps): void => {
-    if (props && props.__experimental?.newComponents && this.__experimental_ui) {
+    if (props?.__experimental?.newComponents && this.__experimental_ui) {
       this.__experimental_ui.mount('SignIn', node, props);
     } else {
       this.assertComponentsReady(this.#componentControls);
@@ -568,7 +570,7 @@ export class Clerk implements ClerkInterface {
   };
 
   public mountSignUp = (node: HTMLDivElement, props?: SignUpProps): void => {
-    if (props && props.__experimental?.newComponents && this.__experimental_ui) {
+    if (props?.__experimental?.newComponents && this.__experimental_ui) {
       this.__experimental_ui.mount('SignUp', node, props);
     } else {
       this.assertComponentsReady(this.#componentControls);
@@ -915,7 +917,7 @@ export class Clerk implements ClerkInterface {
   };
 
   public addListener = (listener: ListenerCallback): UnsubscribeCallback => {
-    listener = memoizeListenerCallback(listener);
+    const memoizedListener = memoizeListenerCallback(listener);
     this.#listeners.push(listener);
     // emit right away
     if (this.client) {
@@ -928,7 +930,7 @@ export class Clerk implements ClerkInterface {
     }
 
     const unsubscribe = () => {
-      this.#listeners = this.#listeners.filter(l => l !== listener);
+      this.#listeners = this.#listeners.filter(l => l !== memoizedListener);
     };
     return unsubscribe;
   };
@@ -1036,7 +1038,7 @@ export class Clerk implements ClerkInterface {
       return '';
     }
 
-    const waitlistUrl = this.#options['waitlistUrl'] || this.environment.displayConfig.waitlistUrl;
+    const waitlistUrl = this.#options.waitlistUrl || this.environment.displayConfig.waitlistUrl;
 
     return buildURL({ base: waitlistUrl }, { stringify: true });
   }
@@ -1171,12 +1173,13 @@ export class Clerk implements ClerkInterface {
     }
 
     const verificationStatus = getClerkQueryParam('__clerk_status');
-    if (verificationStatus === 'expired') {
-      throw new EmailLinkError(EmailLinkErrorCode.Expired);
-    } else if (verificationStatus === 'client_mismatch') {
-      throw new EmailLinkError(EmailLinkErrorCode.ClientMismatch);
-    } else if (verificationStatus !== 'verified') {
-      throw new EmailLinkError(EmailLinkErrorCode.Failed);
+    switch (verificationStatus) {
+      case 'verified':
+        throw new EmailLinkError(EmailLinkErrorCode.Failed);
+      case 'client_mismatch':
+        throw new EmailLinkError(EmailLinkErrorCode.ClientMismatch);
+      case 'expired':
+        throw new EmailLinkError(EmailLinkErrorCode.Expired);
     }
 
     const newSessionId = getClerkQueryParam('__clerk_created_session');
@@ -1196,7 +1199,9 @@ export class Clerk implements ClerkInterface {
         session: newSessionId,
         redirectUrl: params.redirectUrlComplete,
       });
-    } else if (shouldContinueOnThisDevice) {
+    }
+
+    if (shouldContinueOnThisDevice) {
       return redirectContinue();
     }
 
@@ -1471,42 +1476,50 @@ export class Clerk implements ClerkInterface {
   public authenticateWithGoogleOneTap = async (
     params: AuthenticateWithGoogleOneTapParams,
   ): Promise<SignInResource | SignUpResource> => {
-    if (__BUILD_ENABLE_RHC__) {
-      return this.client?.signIn
-        .create({
-          strategy: 'google_one_tap',
-          token: params.token,
-        })
-        .catch(err => {
-          if (isClerkAPIResponseError(err) && err.errors[0].code === 'external_account_not_found') {
-            return this.client?.signUp.create({
-              strategy: 'google_one_tap',
-              token: params.token,
-              legalAccepted: params.legalAccepted,
-            });
-          }
-          throw err;
-        }) as Promise<SignInResource | SignUpResource>;
+    if (!__BUILD_ENABLE_RHC__) {
+      clerkUnsupportedEnvironmentWarning('Google One Tap');
+      return this.client!.signIn; // TODO: Remove not null assertion
     }
 
-    clerkUnsupportedEnvironmentWarning('Google One Tap');
-    return this.client!.signIn; // TODO: Remove not null assertion
+    return this.client?.signIn
+      .create({
+        strategy: 'google_one_tap',
+        token: params.token,
+      })
+      .catch(err => {
+        if (isClerkAPIResponseError(err) && err.errors[0].code === 'external_account_not_found') {
+          return this.client?.signUp.create({
+            strategy: 'google_one_tap',
+            token: params.token,
+            legalAccepted: params.legalAccepted,
+          });
+        }
+        throw err;
+      }) as Promise<SignInResource | SignUpResource>;
   };
 
   public authenticateWithMetamask = async (props: AuthenticateWithMetamaskParams = {}): Promise<void> => {
-    if (__BUILD_ENABLE_RHC__) {
-      await this.authenticateWithWeb3({ ...props, strategy: 'web3_metamask_signature' });
-    } else {
+    if (!__BUILD_ENABLE_RHC__) {
       clerkUnsupportedEnvironmentWarning('Metamask');
+      return Promise.reject();
     }
+
+    await this.authenticateWithWeb3({
+      ...props,
+      strategy: 'web3_metamask_signature',
+    });
   };
 
   public authenticateWithCoinbaseWallet = async (props: AuthenticateWithCoinbaseWalletParams = {}): Promise<void> => {
-    if (__BUILD_ENABLE_RHC__) {
-      await this.authenticateWithWeb3({ ...props, strategy: 'web3_coinbase_wallet_signature' });
-    } else {
+    if (!__BUILD_ENABLE_RHC__) {
       clerkUnsupportedEnvironmentWarning('Coinbase Wallet');
+      return;
     }
+
+    await this.authenticateWithWeb3({
+      ...props,
+      strategy: 'web3_coinbase_wallet_signature',
+    });
   };
 
   public authenticateWithWeb3 = async ({
@@ -1517,51 +1530,52 @@ export class Clerk implements ClerkInterface {
     strategy,
     legalAccepted,
   }: ClerkAuthenticateWithWeb3Params): Promise<void> => {
-    if (__BUILD_ENABLE_RHC__) {
-      if (!this.client || !this.environment) {
-        return;
-      }
-      const provider = strategy.replace('web3_', '').replace('_signature', '') as Web3Provider;
-      const identifier = await getWeb3Identifier({ provider });
-      const generateSignature =
-        provider === 'metamask' ? generateSignatureWithMetamask : generateSignatureWithCoinbaseWallet;
-
-      const navigate = (to: string) =>
-        customNavigate && typeof customNavigate === 'function' ? customNavigate(to) : this.navigate(to);
-
-      let signInOrSignUp: SignInResource | SignUpResource;
-      try {
-        signInOrSignUp = await this.client.signIn.authenticateWithWeb3({ identifier, generateSignature, strategy });
-      } catch (err) {
-        if (isError(err, ERROR_CODES.FORM_IDENTIFIER_NOT_FOUND)) {
-          signInOrSignUp = await this.client.signUp.authenticateWithWeb3({
-            identifier,
-            generateSignature,
-            unsafeMetadata,
-            strategy,
-            legalAccepted,
-          });
-
-          if (
-            signUpContinueUrl &&
-            signInOrSignUp.status === 'missing_requirements' &&
-            signInOrSignUp.verifications.web3Wallet.status === 'verified'
-          ) {
-            await navigate(signUpContinueUrl);
-          }
-        } else {
-          throw err;
-        }
-      }
-
-      if (signInOrSignUp.createdSessionId) {
-        await this.setActive({
-          session: signInOrSignUp.createdSessionId,
-          redirectUrl,
-        });
-      }
-    } else {
+    if (!__BUILD_ENABLE_RHC__) {
       clerkUnsupportedEnvironmentWarning('Web3');
+      return;
+    }
+
+    if (!this.client || !this.environment) {
+      return;
+    }
+    const provider = strategy.replace('web3_', '').replace('_signature', '') as Web3Provider;
+    const identifier = await getWeb3Identifier({ provider });
+    const generateSignature =
+      provider === 'metamask' ? generateSignatureWithMetamask : generateSignatureWithCoinbaseWallet;
+
+    const navigate = (to: string) =>
+      customNavigate && typeof customNavigate === 'function' ? customNavigate(to) : this.navigate(to);
+
+    let signInOrSignUp: SignInResource | SignUpResource;
+    try {
+      signInOrSignUp = await this.client.signIn.authenticateWithWeb3({ identifier, generateSignature, strategy });
+    } catch (err) {
+      if (isError(err, ERROR_CODES.FORM_IDENTIFIER_NOT_FOUND)) {
+        signInOrSignUp = await this.client.signUp.authenticateWithWeb3({
+          identifier,
+          generateSignature,
+          unsafeMetadata,
+          strategy,
+          legalAccepted,
+        });
+
+        if (
+          signUpContinueUrl &&
+          signInOrSignUp.status === 'missing_requirements' &&
+          signInOrSignUp.verifications.web3Wallet.status === 'verified'
+        ) {
+          await navigate(signUpContinueUrl);
+        }
+      } else {
+        throw err;
+      }
+    }
+
+    if (signInOrSignUp.createdSessionId) {
+      await this.setActive({
+        session: signInOrSignUp.createdSessionId,
+        redirectUrl,
+      });
     }
   };
 
