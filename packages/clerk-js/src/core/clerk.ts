@@ -1479,7 +1479,7 @@ export class Clerk implements ClerkInterface {
   public authenticateWithGoogleOneTap = async (
     params: AuthenticateWithGoogleOneTapParams,
   ): Promise<SignInResource | SignUpResource> => {
-    if (!__BUILD_ENABLE_RHC__) {
+    if (__BUILD_DISABLE_RHC__) {
       clerkUnsupportedEnvironmentWarning('Google One Tap');
       return this.client!.signIn; // TODO: Remove not null assertion
     }
@@ -1502,7 +1502,7 @@ export class Clerk implements ClerkInterface {
   };
 
   public authenticateWithMetamask = async (props: AuthenticateWithMetamaskParams = {}): Promise<void> => {
-    if (!__BUILD_ENABLE_RHC__) {
+    if (__BUILD_DISABLE_RHC__) {
       clerkUnsupportedEnvironmentWarning('Metamask');
       return;
     }
@@ -1514,7 +1514,7 @@ export class Clerk implements ClerkInterface {
   };
 
   public authenticateWithCoinbaseWallet = async (props: AuthenticateWithCoinbaseWalletParams = {}): Promise<void> => {
-    if (!__BUILD_ENABLE_RHC__) {
+    if (__BUILD_DISABLE_RHC__) {
       clerkUnsupportedEnvironmentWarning('Coinbase Wallet');
       return;
     }
@@ -1533,7 +1533,7 @@ export class Clerk implements ClerkInterface {
     strategy,
     legalAccepted,
   }: ClerkAuthenticateWithWeb3Params): Promise<void> => {
-    if (!__BUILD_ENABLE_RHC__) {
+    if (__BUILD_DISABLE_RHC__) {
       clerkUnsupportedEnvironmentWarning('Web3');
       return;
     }
