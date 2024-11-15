@@ -65,7 +65,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@clerk/backend": "file:.yalc/@clerk/backend",
+    "@clerk/backend": "workspace:^",
     "@clerk/clerk-react": "5.15.5",
     "@clerk/shared": "2.14.0",
     "@clerk/types": "4.34.0",
