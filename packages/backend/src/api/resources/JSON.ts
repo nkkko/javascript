@@ -15,6 +15,7 @@ export const ObjectType = {
   FacebookAccount: 'facebook_account',
   GoogleAccount: 'google_account',
   Invitation: 'invitation',
+  MachineToken: 'machine_token',
   OauthAccessToken: 'oauth_access_token',
   Organization: 'organization',
   OrganizationInvitation: 'organization_invitation',
@@ -103,6 +104,11 @@ export interface ExternalAccountJSON extends ClerkResourceJSON {
   public_metadata?: Record<string, unknown> | null;
   label: string | null;
   verification: VerificationJSON | null;
+}
+
+export interface MachineTokenJSON {
+  object: typeof ObjectType.MachineToken;
+  jwt: string;
 }
 
 export interface SamlAccountJSON extends ClerkResourceJSON {

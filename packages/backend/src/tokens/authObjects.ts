@@ -30,8 +30,7 @@ export type SignedInAuthObject = {
   sessionClaims: JwtPayload;
   sessionId: string;
   actor: ActClaim | undefined;
-  userId: string | null;
-  machineId: string | null;
+  userId: string;
   orgId: string | undefined;
   orgRole: OrganizationCustomRoleKey | undefined;
   orgSlug: string | undefined;
@@ -56,7 +55,6 @@ export type SignedOutAuthObject = {
   sessionId: null;
   actor: null;
   userId: null;
-  machineId: null;
   orgId: null;
   orgRole: null;
   orgSlug: null;
@@ -73,10 +71,18 @@ export type SignedOutAuthObject = {
   debug: AuthObjectDebug;
 };
 
+export type AuthenticatedMachineObject = {
+  claims: JwtPayload;
+  machineId: string;
+  has: CheckAuthorizationWithCustomPermissions;
+  getToken: ServerGetToken;
+  debug: AuthObjectDebug;
+};
+
 /**
  * @internal
  */
-export type AuthObject = SignedInAuthObject | SignedOutAuthObject;
+export type AuthObject = SignedInAuthObject | SignedOutAuthObject | AuthenticatedMachineObject;
 
 const createDebug = (data: AuthObjectDebugData | undefined) => {
   return () => {
@@ -102,7 +108,7 @@ export function signedInAuthObject(
     org_role: orgRole,
     org_slug: orgSlug,
     org_permissions: orgPermissions,
-    sub,
+    sub: userId,
     fva,
   } = sessionClaims;
   const apiClient = createBackendApiClient(authenticateContext);
@@ -115,23 +121,11 @@ export function signedInAuthObject(
   // fva can be undefined for instances that have not opt-in
   const __experimental_factorVerificationAge = fva ?? null;
 
-  let userId: string | null = null;
-  let machineId: string | null = null;
-
-  if (typeof sub === 'string') {
-    if (sub.startsWith('mch_')) {
-      machineId = sub;
-    } else {
-      userId = sub;
-    }
-  }
-
   return {
     actor,
     sessionClaims,
     sessionId,
     userId,
-    machineId,
     orgId,
     orgRole,
     orgSlug,
@@ -151,7 +145,6 @@ export function signedOutAuthObject(debugData?: AuthObjectDebugData): SignedOutA
     sessionClaims: null,
     sessionId: null,
     userId: null,
-    machineId: null,
     actor: null,
     orgId: null,
     orgRole: null,
@@ -164,6 +157,19 @@ export function signedOutAuthObject(debugData?: AuthObjectDebugData): SignedOutA
   };
 }
 
+export function authenticatedMachineObject(
+  claims: JwtPayload,
+  machineId: string,
+  debugData?: AuthObjectDebugData,
+): AuthenticatedMachineObject {
+  return {
+    claims,
+    machineId,
+    getToken: () => Promise.resolve(null),
+    has: () => false,
+    debug: createDebug(debugData),
+  };
+}
 /**
  * Auth objects moving through the server -> client boundary need to be serializable
  * as we need to ensure that they can be transferred via the network as pure strings.

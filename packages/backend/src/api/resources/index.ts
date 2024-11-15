@@ -18,6 +18,7 @@ export * from './ExternalAccount';
 export * from './IdentificationLink';
 export * from './Invitation';
 export * from './JSON';
+export * from './MachineToken';
 export * from './OauthAccessToken';
 export * from './Organization';
 export * from './OrganizationInvitation';
