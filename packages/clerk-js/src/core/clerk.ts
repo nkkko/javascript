@@ -1371,7 +1371,8 @@ export class Clerk implements ClerkInterface {
       return navigateToSignIn();
     }
 
-    const userHasUnverifiedEmail = si.status === 'needs_first_factor';
+    const userHasUnverifiedEmail =
+      si.status === 'needs_first_factor' && !signIn.supportedFirstFactors?.every(f => f.strategy === 'enterprise_sso');
 
     if (userHasUnverifiedEmail) {
       return navigateToFactorOne();

@@ -133,6 +133,12 @@ export class SignIn extends BaseResource implements SignInResource {
           actionCompleteRedirectUrl: factor.actionCompleteRedirectUrl,
         } as SamlConfig;
         break;
+      case 'enterprise_sso':
+        config = {
+          redirectUrl: factor.redirectUrl,
+          actionCompleteRedirectUrl: factor.actionCompleteRedirectUrl,
+        } as SamlConfig;
+        break;
       default:
         clerkInvalidStrategy('SignIn.prepareFirstFactor', factor.strategy);
     }
@@ -214,7 +220,7 @@ export class SignIn extends BaseResource implements SignInResource {
     const { strategy, redirectUrl, redirectUrlComplete, identifier } = params || {};
 
     const { firstFactorVerification } =
-      strategy === 'saml' && this.id
+      (strategy === 'saml' || strategy === 'enterprise_sso') && this.id
         ? await this.prepareFirstFactor({
             strategy,
             redirectUrl: SignIn.clerk.buildUrlWithAuth(redirectUrl),
